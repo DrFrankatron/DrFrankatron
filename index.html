@@ -12,16 +12,17 @@
   <div id="bancode_13024"><script src="//multibux.org/bancode.php?id=13024" async></script></div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.155.0/three.js"></script>
   <script src="perlin.js"></script>
+  <script src="stats.js"></script>
   <script>
-  var stats = new Stats();
-  stats.showPanel( 1 ); // 0: fps, 1: ms, 2: mb, 3+: custom
-  document.body.appendChild( stats.dom );
-  function animate() {
-    stats.begin();
-    // monitored code goes here
-    stats.end();
-    requestAnimationFrame( animate );
-  }
+    var stats = new Stats();
+    stats.showPanel( 1 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+    document.body.appendChild( stats.dom );
+    function animate() {
+      stats.begin();
+      // monitored code goes here
+      stats.end();
+      requestAnimationFrame( animate );
+    }
     requestAnimationFrame( animate );
     //Créditos a ChatGPT-1 por el aporte con sus sugerencias e ideas:
     onload = () => {
