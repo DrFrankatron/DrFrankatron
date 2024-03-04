@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      overflow: hidden;
+      margin: 0;
+    }
+  </style>
+  <div id="bancode_13024"><script src="//multibux.org/bancode.php?id=13024" async></script></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.155.0/three.js"></script>
+  <script src="perlin.js"></script>
+  <script>
+    //Créditos a ChatGPT-1 por el aporte con sus sugerencias e ideas:
+    onload = () => {
+      // Ajustar las funciones matemáticas iniciales:
+      seed = Math.random();
+      noise2d = (i, k) => {
+        return noise.simplex2(i, k + seed);
+      }
+      getSurfaceAt = (i, k) => {
+        return noise2d(i / 1000, k / 1000) * 200 + noise2d(i / 100, k / 100) * 20 + noise2d(i / 10, k / 10) * 2;
+      }
+      rand=()=>{
+        return Math.random()
+      }
+      distance2d=(obj1,obj2)=>{return ((obj1.x-obj2.x)**2+(obj1.y-obj2.y)**2)**0.5}
+      distance3d=(obj1,obj2)=>{return ((obj1.x-obj2.x)**2+(obj1.y-obj2.y)**2+(obj1.z-obj2.z)**2)**0.5}
+      //Colocar el absorbe-texturas lo primero:
+      const textureLoader = new THREE.TextureLoader();
+      // Ajustar la preparación del canvas:
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 100000)
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight)
+      document.body.appendChild(renderer.domElement)
+      scene.background = new THREE.Color("rgb(0,127,255)")
+      rd = 8000
+
+      ambientLight=new THREE.AmbientLight(new THREE.Color("rgb(255,255,255)"),1)
+      scene.add(ambientLight)
+
+      scene.fog = new THREE.Fog(new THREE.Color("rgb(0,127,255)"), rd*3/10, rd*4/10)
+
+      const terrainChunks = []
+      const leavesChunks = []
+      const trunksChunks = []
+      const brownstoneChunks = []
+      const graniteChunks = []
+      const limestoneChunks = []
+      const microleavesChunks = []
+      const chunkSize = rd * 0.85 // Tamaño del fragmento de terreno
+
+      // Función para generar un nuevo fragmento de terreno
+      const generateTerrainChunk = (x, z) => {
+      	const chunkAccuracy = 1
+        const terrainChunkGeometry = new THREE.PlaneGeometry(chunkSize, chunkSize, chunkAccuracy * 128, chunkAccuracy * 128)
+        terrainChunkGeometry.rotateX(-Math.PI / 2);
+        //Geneerar las piedras:
+        const brownstoneTexture = textureLoader.load("brownstone.png")
+        brownstoneTexture.wrapS = THREE.RepeatWrapping
+        brownstoneTexture.wrapT = THREE.RepeatWrapping
+        brownstoneTexture.repeat.set(4, 4)
+        const brownstoneChunkMaterial = new THREE.MeshLambertMaterial({ map: brownstoneTexture, side: THREE.DoubleSide })
+
+        const graniteTexture = textureLoader.load("Granite.jpg")
+        graniteTexture.wrapS = THREE.RepeatWrapping
+        graniteTexture.wrapT = THREE.RepeatWrapping
+        graniteTexture.repeat.set(4, 4)
+        const graniteChunkMaterial = new THREE.MeshLambertMaterial({ map: graniteTexture, side: THREE.DoubleSide })
+
+        const limestoneTexture = textureLoader.load("limestone.jpg");
+        limestoneTexture.wrapS = THREE.RepeatWrapping
+        limestoneTexture.wrapT = THREE.RepeatWrapping
+        limestoneTexture.repeat.set(4, 4)
+        const limestoneChunkMaterial = new THREE.MeshLambertMaterial({ map: limestoneTexture, side: THREE.DoubleSide })
+        //Generar el suelo:
+        const dirtTexture = textureLoader.load("grass.jpg")
+        dirtTexture.wrapS = THREE.RepeatWrapping
+        dirtTexture.wrapT = THREE.RepeatWrapping
+        dirtTexture.repeat.set(32, 32)
+        const terrainChunkMaterial = new THREE.MeshLambertMaterial({ map: dirtTexture, side: THREE.DoubleSide });
+        const terrainChunkMesh = new THREE.Mesh(terrainChunkGeometry, terrainChunkMaterial)
+        terrainChunkMesh.position.set(x, -20, z)
+        scene.add(terrainChunkMesh)
+        terrainChunks.push(terrainChunkMesh)
+        //Generar las hojas:
+        const leavesChunkGeometry = new THREE.PlaneGeometry(chunkSize, chunkSize, chunkAccuracy * 128, chunkAccuracy * 128)
+        leavesChunkGeometry.rotateX(-Math.PI / 2)
+        const leavesChunkVertices = leavesChunkGeometry.attributes.position.array
+        for (let i = 0; i < leavesChunkVertices.length; i += 3) {
+          const chunkX = leavesChunkVertices[i] + x;
+          const chunkZ = leavesChunkVertices[i + 2] + z;
+          const y = getSurfaceAt(chunkX, chunkZ);
+          leavesChunkVertices[i + 1] = y+100
+        }
+        const leavesTexture = textureLoader.load("leaves.jpg")
+        leavesTexture.wrapS = THREE.RepeatWrapping
+        leavesTexture.wrapT = THREE.RepeatWrapping
+        leavesTexture.repeat.set(32,32)
+        const leavesChunkMaterial = new THREE.MeshLambertMaterial({ map: leavesTexture, side: THREE.DoubleSide })
+        const leavesChunkMesh = new THREE.Mesh(leavesChunkGeometry, leavesChunkMaterial)
+        leavesChunkMesh.position.set(x, 0, z)
+        scene.add(leavesChunkMesh)
+        leavesChunks.push(leavesChunkMesh)
+        //Generar el terreno:
+        const terrainChunkVertices = terrainChunkGeometry.attributes.position.array
+        for (let i = 0; i < terrainChunkVertices.length; i += 3) {
+          const chunkX = terrainChunkVertices[i] + x
+          const chunkZ = terrainChunkVertices[i + 2] + z
+          const y = getSurfaceAt(chunkX, chunkZ)
+          terrainChunkVertices[i + 1] = y
+          //Generar los troncos:
+          if (rand() < 0.025/chunkAccuracy/chunkAccuracy) {
+            const trunk_meshMaterial = new THREE.Mesh(gTronco(), trunk_material)
+            trunk_meshMaterial.position.set(chunkX, getSurfaceAt(chunkX, chunkZ) + 25, chunkZ)
+            scene.add(trunk_meshMaterial)
+            trunksChunks.push(trunk_meshMaterial)
+          }
+          //Generar las rocas.
+          gRoca=()=>{
+            geometry=new THREE.SphereGeometry(20)
+            // Alterar las posiciones de los vértices de manera aleatoria
+            const positionAttribute = geometry.attributes.position
+            for (let i = 0; i < positionAttribute.count; i++) {
+              const vertex = new THREE.Vector3()
+              vertex.fromBufferAttribute(positionAttribute, i)
+              vertex.x += rand()*2-1 // Ajusta según el rango deseado
+              vertex.y += rand()*2+vertex.y // Ajusta según el rango deseado
+              vertex.z += rand()*2-1 // Ajusta según el rango deseado
+              positionAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z)
+            }
+            positionAttribute.needsUpdate = true
+            return geometry
+          }
+          gTronco=()=>{
+            geometry=new THREE.CylinderGeometry(20, 20, 200, 32)
+            // Alterar las posiciones de los vértices de manera aleatoria
+            const positionAttribute = geometry.attributes.position
+            for (let i = 0; i < positionAttribute.count; i++) {
+              const vertex = new THREE.Vector3()
+              vertex.fromBufferAttribute(positionAttribute, i)
+              vertex.x += rand()*8-4 // Ajusta según el rango deseado
+              vertex.y += 0 // Ajusta según el rango deseado
+              vertex.z += rand()*8-4 // Ajusta según el rango deseado
+              positionAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z)
+            }
+            positionAttribute.needsUpdate = true
+            return geometry
+          }
+          if (Math.random() < 0.0025/chunkAccuracy/chunkAccuracy) {
+            const limestone_meshMaterial = new THREE.Mesh(gRoca(),limestoneChunkMaterial)
+            limestone_meshMaterial.position.set(chunkX, getSurfaceAt(chunkX, chunkZ) - 10, chunkZ)
+            scene.add(limestone_meshMaterial)
+            limestoneChunks.push(limestone_meshMaterial)
+          }
+          if (Math.random() < 0.0025/chunkAccuracy/chunkAccuracy) {
+            const brownstone_meshMaterial = new THREE.Mesh(gRoca(),brownstoneChunkMaterial)
+            brownstone_meshMaterial.position.set(chunkX, getSurfaceAt(chunkX, chunkZ) - 10, chunkZ)
+            scene.add(brownstone_meshMaterial)
+            brownstoneChunks.push(brownstone_meshMaterial)
+          }
+          if (Math.random() < 0.0025/chunkAccuracy/chunkAccuracy) {
+            const granite_meshMaterial = new THREE.Mesh(gRoca(),graniteChunkMaterial)
+            granite_meshMaterial.position.set(chunkX, getSurfaceAt(chunkX, chunkZ) - 10, chunkZ)
+            scene.add(granite_meshMaterial)
+            graniteChunks.push(granite_meshMaterial)
+          }
+        }
+      };
+
+      trunk_texture = textureLoader.load("trunk.jpg")
+      trunk_texture.wrapS = THREE.RepeatWrapping
+      trunk_texture.wrapT = THREE.RepeatWrapping
+      trunk_texture.repeat.set(1, 2.5)
+      trunk_material = new THREE.MeshLambertMaterial({ map: trunk_texture, side: THREE.DoubleSide })
+
+      // Función para eliminar fragmentos de terreno que ya no son visibles
+      const removeInvisibleChunks = () => {
+        const visibleChunks = []
+        camera.getWorldPosition(tmpVector)
+
+        const allChunks = terrainChunks.concat(leavesChunks, trunksChunks, brownstoneChunks, graniteChunks, limestoneChunks, microleavesChunks)
+
+        for (const chunk of allChunks) {
+          chunk.getWorldPosition(tmpVector2)
+          if (tmpVector.distanceTo(tmpVector2) < chunkSize * 1.5) {
+            visibleChunks.push(chunk)
+          } else {
+            scene.remove(chunk)
+            chunk.geometry.dispose()
+          }
+        }
+      };
+
+      const tmpVector = new THREE.Vector3()
+      const tmpVector2 = new THREE.Vector3()
+
+      //Crea los controles del mouse:
+      let xa = 0;
+      let ya = 0;
+      onmousedown = () => {
+        if (document.pointerLockElement === document.body || document.mozPointerLockElement === document.body) {
+        } else {
+          document.body.requestPointerLock()
+        }
+      };
+      onmousemove = event => {
+        if (document.pointerLockElement === document.body || document.mozPointerLockElement === document.body) {
+          xa -= 0.01 * event.movementX;
+          if (-1.5 < ya && 0 < event.movementY) {
+            ya -= 0.005 * event.movementY
+          }
+          if (ya < 1.5 && event.movementY < 0) {
+            ya -= 0.005 * event.movementY
+          }
+        }
+      };
+
+      //Crear los controles de teclado:
+      let k = [];
+      onkeydown = onkeyup = e => {
+        k[e.keyCode] = e.type == "keydown";
+      };
+
+      // Crear una función de animación
+      const animate = () => {
+        // Ajustar el canvas...
+        renderer.setSize(innerWidth, innerHeight)
+        camera.aspect = innerWidth / innerHeight
+        camera.updateProjectionMatrix()
+
+
+
+        // Ajustar los controles...
+        if (-1.5 > ya) {
+          ya = -1.5
+        }
+        if (1.5 < ya) {
+          ya = 1.5
+        }
+        camera.lookAt(
+          camera.position.x + Math.sin(xa) * Math.cos(ya),
+          camera.position.y + Math.sin(ya),
+          camera.position.z + Math.cos(xa) * Math.cos(ya)
+        );
+
+	    // Colisiones:
+	    for(i1 in trunksChunks){
+          if(distance3d({x:trunksChunks[i1].position.x,y:0,z:trunksChunks[i1].position.z},{x:camera.position.x,y:0,z:camera.position.z})<24){
+            console.log("Collision.")
+            camera.position.x+=(camera.position.x-trunksChunks[i1].position.x)/distance3d({x:trunksChunks[i1].position.x,y:0,z:trunksChunks[i1].position.z},{x:camera.position.x,y:0,z:camera.position.z})
+            camera.position.z+=(camera.position.z-trunksChunks[i1].position.z)/distance3d({x:trunksChunks[i1].position.x,y:0,z:trunksChunks[i1].position.z},{x:camera.position.x,y:0,z:camera.position.z})
+          }
+        }
+        for(i1 in brownstoneChunks){
+          if(distance3d({x:brownstoneChunks[i1].position.x,y:0,z:brownstoneChunks[i1].position.z},{x:camera.position.x,y:0,z:camera.position.z})<24){
+            console.log("Collision.")
+            module=distance3d({x:brownstoneChunks[i1].position.x,y:0,z:brownstoneChunks[i1].position.z},{x:camera.position.x,y:0,z:camera.position.z})
+            camera.position.x+=(camera.position.x-brownstoneChunks[i1].position.x)/module
+            camera.position.z+=(camera.position.z-brownstoneChunks[i1].position.z)/module
+          }
+        }
+        for(i1 in limestoneChunks){
+          if(distance3d({x:limestoneChunks[i1].position.x,y:0,z:limestoneChunks[i1].position.z},{x:camera.position.x,y:0,z:camera.position.z})<24){
+            console.log("Collision.")
+            module=distance3d({x:limestoneChunks[i1].position.x,y:0,z:limestoneChunks[i1].position.z},{x:camera.position.x,y:0,z:camera.position.z})
+            camera.position.x+=(camera.position.x-limestoneChunks[i1].position.x)/module
+            camera.position.z+=(camera.position.z-limestoneChunks[i1].position.z)/module
+          }
+        }
+        for(i1 in graniteChunks){
+          if(distance3d({x:graniteChunks[i1].position.x,y:0,z:graniteChunks[i1].position.z},{x:camera.position.x,y:0,z:camera.position.z})<24){
+            console.log("Collision.")
+            module=distance3d({x:graniteChunks[i1].position.x,y:0,z:graniteChunks[i1].position.z},{x:camera.position.x,y:0,z:camera.position.z})
+            camera.position.x+=(camera.position.x-graniteChunks[i1].position.x)/module
+            camera.position.z+=(camera.position.z-graniteChunks[i1].position.z)/module
+          }
+        }
+
+        // Establecer la velocidad predeterminada
+	    if(k[81]){
+	    	walkspeed=1
+	    }else{
+	    	walkspeed=0.5
+	    }
+
+	    // Mover el jugador
+	    if (k[65]) {
+	      camera.position.x += walkspeed * Math.cos(xa)
+	      camera.position.z -= walkspeed * Math.sin(xa)
+	    }
+	    if (k[87]) {
+	      camera.position.x += walkspeed * Math.sin(xa)
+	      camera.position.z += walkspeed * Math.cos(xa)
+	    }
+	    if (k[68]) {
+	      camera.position.x -= walkspeed * Math.cos(xa)
+	      camera.position.z += walkspeed * Math.sin(xa)
+	    }
+	    if (k[83]) {
+	      camera.position.x -= walkspeed * Math.sin(xa)
+	      camera.position.z -= walkspeed * Math.cos(xa)
+	    }
+
+        // Manteniendo la fuerza de sujección del Jugador contra el suelo:
+      	camera.position.y = getSurfaceAt(camera.position.x, camera.position.z) + 10
+
+        // Generar nuevos fragmentos de terreno a medida que el jugador se mueve
+        const playerChunkX = Math.floor(camera.position.x / chunkSize) * chunkSize
+        const playerChunkZ = Math.floor(camera.position.z / chunkSize) * chunkSize
+
+        for (let x = -chunkSize; x <= chunkSize; x += chunkSize) {
+          for (let z = -chunkSize; z <= chunkSize; z += chunkSize) {
+            const chunkX = playerChunkX + x
+            const chunkZ = playerChunkZ + z
+
+            if (!terrainChunks.some(chunk => chunk.position.x === chunkX && chunk.position.z === chunkZ)) {
+              generateTerrainChunk(chunkX, chunkZ);
+            }
+          }
+        }
+
+        // Eliminar fragmentos de terreno invisibles
+        removeInvisibleChunks()
+
+        // Llamada recursiva para la próxima animación
+        requestAnimationFrame(animate)
+        renderer.render(scene, camera)
+      }
+
+      // Iniciar la animación
+      animate();
+    };
+  </script>
+</head>
+<body>
+</body>
+</html>
